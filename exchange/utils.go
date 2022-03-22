@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"reflect"
 
 	"github.com/mxmCherry/openrtb/v15/openrtb2"
 	"github.com/prebid/go-gdpr/vendorconsent"
@@ -740,4 +741,18 @@ func applyFPD(fpd *firstpartydata.ResolvedFirstPartyData, bidReq *openrtb2.BidRe
 	if fpd.User != nil {
 		bidReq.User = fpd.User
 	}
+}
+
+//DeepCopy copies a structure that has pointers to another structures
+func DeepCopy(in interface{}) (interface{}, error) {
+	data, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+	dataType := reflect.New(reflect.TypeOf(in))
+	err = json.Unmarshal(data, dataType.Interface())
+	if err != nil {
+		return nil, err
+	}
+	return dataType.Elem().Interface(), err
 }

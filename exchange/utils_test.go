@@ -2670,3 +2670,21 @@ func Test_parseAliasesGVLIDs(t *testing.T) {
 		})
 	}
 }
+
+func TestDeepCopy(t *testing.T) {
+	req := newBidRequest(t)
+	reqCopy, err := DeepCopy(req)
+	resolvedReqCopy := reqCopy.(*openrtb2.BidRequest)
+	assert.NoError(t, err, "error should be nil")
+	assert.Equal(t, "some-publisher-id", req.Site.Publisher.ID, "incorrect site.publisher.id in original request")
+	assert.Equal(t, "some-publisher-id", resolvedReqCopy.Site.Publisher.ID, "incorrect site.publisher.id in copied request")
+
+	req.Site.Publisher.ID = "req-site-publisher-id"
+	assert.Equal(t, "req-site-publisher-id", req.Site.Publisher.ID, "incorrect site.publisher.id in original request")
+	assert.Equal(t, "some-publisher-id", resolvedReqCopy.Site.Publisher.ID, "incorrect site.publisher.id in copied request")
+
+	resolvedReqCopy.Site.Publisher.ID = "resolvedReqCopy-site-publisher-id"
+	assert.Equal(t, "req-site-publisher-id", req.Site.Publisher.ID, "incorrect site.publisher.id in original request")
+	assert.Equal(t, "resolvedReqCopy-site-publisher-id", resolvedReqCopy.Site.Publisher.ID, "incorrect site.publisher.id in copied request")
+
+}

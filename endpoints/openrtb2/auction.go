@@ -156,15 +156,6 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 		return
 	}
 
-	resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(req)
-	if len(fpdErrors) > 0 {
-		if errortypes.ContainsFatalError(fpdErrors) && writeError(fpdErrors, w, &labels) {
-			return
-		}
-		errL = append(errL, fpdErrors...)
-	}
-	warnings := errortypes.WarningOnly(errL)
-
 	ctx := context.Background()
 
 	timeout := deps.cfg.AuctionTimeouts.LimitAuctionTimeout(time.Duration(req.TMax) * time.Millisecond)
@@ -214,8 +205,27 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 
 	secGPC := r.Header.Get("Sec-GPC")
 
+	//ExtractFPDForBidders removes FPD related structures from request.
+	//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
+	//original request should be copied before FPD execution
+	resolvedBidReq, err := exchange.DeepCopy(req.BidRequest)
+	if err != nil {
+		errL = append(errL, err)
+		writeError(errL, w, &labels)
+		return
+	}
+	resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(req)
+	if len(fpdErrors) > 0 {
+		if errortypes.ContainsFatalError(fpdErrors) && writeError(fpdErrors, w, &labels) {
+			return
+		}
+		errL = append(errL, fpdErrors...)
+	}
+	warnings := errortypes.WarningOnly(errL)
+
 	auctionRequest := exchange.AuctionRequest{
 		BidRequest:                 req.BidRequest,
+		ResolvedBidRequest:         resolvedBidReq.(*openrtb2.BidRequest),
 		Account:                    *account,
 		UserSyncs:                  usersyncs,
 		RequestType:                labels.RType,

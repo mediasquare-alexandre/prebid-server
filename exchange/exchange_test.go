@@ -3897,6 +3897,38 @@ func TestBuildStoredAuctionResponses(t *testing.T) {
 	}
 }
 
+func TestMakeExtBidResponse(t *testing.T) {
+	testCases := []struct {
+		description          string
+		inBidRequest         *openrtb2.BidRequest
+		inResolvedBidRequest *openrtb2.BidRequest
+		outBidRequest        *openrtb2.BidRequest
+	}{
+		{
+			description:          "resolved request exists",
+			inBidRequest:         &openrtb2.BidRequest{ID: "bidReqId"},
+			inResolvedBidRequest: &openrtb2.BidRequest{ID: "resolvedBidReq"},
+			outBidRequest:        &openrtb2.BidRequest{ID: "resolvedBidReq"},
+		},
+		{
+			description:          "resolved request doesn't exists",
+			inBidRequest:         &openrtb2.BidRequest{ID: "bidReqId"},
+			inResolvedBidRequest: nil,
+			outBidRequest:        &openrtb2.BidRequest{ID: "bidReqId"},
+		},
+	}
+
+	for _, testCase := range testCases {
+		e := new(exchange)
+		auctionReq := AuctionRequest{
+			BidRequest:         testCase.inBidRequest,
+			ResolvedBidRequest: testCase.inResolvedBidRequest,
+		}
+		actualResponse := e.makeExtBidResponse(nil, nil, auctionReq, true, nil)
+		assert.Equal(t, testCase.outBidRequest.ID, actualResponse.Debug.ResolvedRequest.ID, "Incorrect resolvedRequest.ID: %s", testCase.description)
+	}
+}
+
 type exchangeSpec struct {
 	GDPREnabled       bool                   `json:"gdpr_enabled"`
 	IncomingRequest   exchangeRequest        `json:"incomingRequest"`

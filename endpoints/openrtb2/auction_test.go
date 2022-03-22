@@ -3283,6 +3283,61 @@ func TestAuctionFirstPartyData(t *testing.T) {
 	assert.Nil(t, resultRequest.User.Ext, "Result request User.Ext is incorrect")
 }
 
+func TestAuctionFirstPartyDataResolvedRequest(t *testing.T) {
+	reqBody := validRequest(t, "first-party-data-resolved-request.json")
+	deps := &endpointDeps{
+		fakeUUIDGenerator{},
+		&mockExchangeFPD{},
+		newParamsValidator(t),
+		&mockStoredReqFetcher{},
+		empty_fetcher.EmptyFetcher{},
+		empty_fetcher.EmptyFetcher{},
+		&config.Configuration{MaxRequestSize: int64(len(reqBody))},
+		&metricsConfig.NilMetricsEngine{},
+		analyticsConf.NewPBSAnalytics(&config.Analytics{}),
+		map[string]string{},
+		false,
+		[]byte{},
+		openrtb_ext.BuildBidderMap(),
+		nil,
+		nil,
+		hardcodedResponseIPValidator{response: true},
+		empty_fetcher.EmptyFetcher{},
+	}
+
+	req := httptest.NewRequest("POST", "/openrtb2/auction", strings.NewReader(reqBody))
+	recorder := httptest.NewRecorder()
+
+	deps.Auction(recorder, req, nil)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Endpoint should return a 200")
+	}
+	resultRequest := deps.ex.(*mockExchangeFPD).lastRequest
+	resolvedRequest := deps.ex.(*mockExchangeFPD).resolvedRequest
+	assert.NotNil(t, resolvedRequest.Site.Content, "Incorrect resolved request: site.content should not be nil")
+	assert.Equal(t, "reqSiteId", resolvedRequest.Site.ID, "Incorrect resolved request: site.id")
+	assert.Equal(t, "episodeName", resolvedRequest.Site.Content.Title, "Incorrect resolved request: site.content.title")
+	assert.Len(t, resolvedRequest.Site.Content.Data, 1, "Incorrect resolved request: site.content.data")
+	assert.Equal(t, "reqContentDataSiteId1", resolvedRequest.Site.Content.Data[0].ID, "Incorrect resolved request: site.content.data[0].id")
+	assert.Equal(t, "reqContentDataSiteName1", resolvedRequest.Site.Content.Data[0].Name, "Incorrect resolved request: site.content.data[0].name")
+	assert.Equal(t, json.RawMessage(`{"amp":1,"data":{"somesitefpd":"fpdSite"}}`), resolvedRequest.Site.Ext, "Incorrect resolved request: site.ext")
+
+	assert.Len(t, resolvedRequest.User.Data, 2, "Incorrect resolved request: user.data should contain 2 elements")
+	assert.Equal(t, "reqUserID", resolvedRequest.User.ID, "Incorrect resolved request: user.id")
+	assert.Equal(t, "reqDataUserId1", resolvedRequest.User.Data[0].ID, "Incorrect resolved request: user.data[0].id")
+	assert.Equal(t, "reqDataUserName2", resolvedRequest.User.Data[1].Name, "Incorrect resolved request: user.data[1].name")
+	assert.Equal(t, json.RawMessage(`{"data":{"moreuserdata":"morefpduserdata"}}`), resolvedRequest.User.Ext, "Incorrect resolved request: user.ext")
+
+	expectedResolvedRequestExt := json.RawMessage(`{"prebid":{"data":{"bidders":["bidder1","bidder2"]},"bidderconfig":[{"bidders":["bidder1"],"config":{"ortb2":{"site":{"id":"fpdSiteId","keywords":"fpd keywords!","data":[{"id":"siteId1","name":true},{"id":"siteId2","name":false}],"page":"","ext":{"data":{"morefpdData":"morefpddata","sitefpddata":"mysitefpddata"}}}}}},{"bidders":["bidder2"],"config":{"ortb2":{"user":{"id":"fpdUserId","yob":2011,"gender":"F","keywords":"fpd keywords","data":[{"id":"fpdUserDataId1","name":"fpdUserDataName1"},{"id":"fpdUserDataId2","name":"fpdUserDataName2"}],"ext":{"data":{"userdata":"biddermyfpduserdata"}}}}}}]}}`)
+	assert.Equal(t, expectedResolvedRequestExt, resolvedRequest.Ext, "Incorrect resolved request: ext")
+
+	assert.Nil(t, resultRequest.App, "Result request App should be nil")
+	assert.Nil(t, resultRequest.Site.Content.Data, "Result request Site.Content.Data is incorrect")
+	assert.JSONEq(t, `{"amp": 1}`, string(resultRequest.Site.Ext), "Result request Site.Ext is incorrect")
+	assert.Nil(t, resultRequest.User.Ext, "Result request User.Ext is incorrect")
+}
+
 func TestValidateNativeContextTypes(t *testing.T) {
 	impIndex := 4
 
@@ -4603,12 +4658,14 @@ func (m *mockExchange) HoldAuction(ctx context.Context, r exchange.AuctionReques
 }
 
 type mockExchangeFPD struct {
-	lastRequest    *openrtb2.BidRequest
-	firstPartyData map[openrtb_ext.BidderName]*firstpartydata.ResolvedFirstPartyData
+	lastRequest     *openrtb2.BidRequest
+	resolvedRequest *openrtb2.BidRequest
+	firstPartyData  map[openrtb_ext.BidderName]*firstpartydata.ResolvedFirstPartyData
 }
 
 func (m *mockExchangeFPD) HoldAuction(ctx context.Context, r exchange.AuctionRequest, debugLog *exchange.DebugLog) (*openrtb2.BidResponse, error) {
 	m.lastRequest = r.BidRequest
+	m.resolvedRequest = r.ResolvedBidRequest
 	m.firstPartyData = r.FirstPartyData
 	return &openrtb2.BidResponse{}, nil
 }
