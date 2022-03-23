@@ -790,7 +790,9 @@ func TestQueryParamOverrides(t *testing.T) {
 		t.Fatalf("Error unmarshalling response: %s", err.Error())
 	}
 
-	resolvedRequest := response.Debug.ResolvedRequest
+	var resolvedRequest openrtb2.BidRequest
+	err := json.Unmarshal(response.Debug.ResolvedRequest, &resolvedRequest)
+	assert.NoError(t, err, "resolved request should have a correct format")
 	if resolvedRequest.TMax != timeout {
 		t.Errorf("Expected TMax to equal timeout (%d), got: %d", timeout, resolvedRequest.TMax)
 	}
@@ -936,8 +938,10 @@ func (s formatOverrideSpec) execute(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("Error unmarshalling response: %s", err.Error())
 	}
-
-	formats := response.Debug.ResolvedRequest.Imp[0].Banner.Format
+	var resolvedRequest openrtb2.BidRequest
+	err := json.Unmarshal(response.Debug.ResolvedRequest, &resolvedRequest)
+	assert.NoError(t, err, "resolved request should have the correct format")
+	formats := resolvedRequest.Imp[0].Banner.Format
 	if len(formats) != len(s.expect) {
 		t.Fatalf("Bad formats length. Expected %v, got %v", s.expect, formats)
 	}

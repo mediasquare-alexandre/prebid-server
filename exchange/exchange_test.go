@@ -377,7 +377,9 @@ func TestDebugBehaviour(t *testing.T) {
 
 			// If not nil, assert bid extension
 			if test.in.debug {
-				assert.JSONEq(t, string(bidRequest.Ext), string(actualExt.Debug.ResolvedRequest.Ext), test.desc)
+				actualResolvedReqExt, _, _, err := jsonparser.Get(actualExt.Debug.ResolvedRequest, "ext")
+				assert.NoError(t, err, "Resolved request should have the correct format")
+				assert.JSONEq(t, string(bidRequest.Ext), string(actualResolvedReqExt), test.desc)
 			}
 		} else if !test.debugData.bidderLevelDebugAllowed && test.debugData.accountLevelDebugAllowed {
 			assert.Equal(t, len(actualExt.Debug.HttpCalls), 0, "%s. ext.debug.httpcalls array should not be empty", "With bidder level debug disable option http calls should be empty")
@@ -3899,22 +3901,28 @@ func TestBuildStoredAuctionResponses(t *testing.T) {
 
 func TestMakeExtBidResponse(t *testing.T) {
 	testCases := []struct {
-		description          string
-		inBidRequest         *openrtb2.BidRequest
-		inResolvedBidRequest *openrtb2.BidRequest
-		outBidRequest        *openrtb2.BidRequest
+		description           string
+		inBidRequest          *openrtb2.BidRequest
+		inResolvedBidRequest  json.RawMessage
+		outResolvedBidRequest json.RawMessage
 	}{
 		{
-			description:          "resolved request exists",
-			inBidRequest:         &openrtb2.BidRequest{ID: "bidReqId"},
-			inResolvedBidRequest: &openrtb2.BidRequest{ID: "resolvedBidReq"},
-			outBidRequest:        &openrtb2.BidRequest{ID: "resolvedBidReq"},
+			description:           "resolved request exists",
+			inBidRequest:          &openrtb2.BidRequest{ID: "bidReqId"},
+			inResolvedBidRequest:  json.RawMessage(`{"id": "resolvedBidReq"}`),
+			outResolvedBidRequest: json.RawMessage(`{"id": "resolvedBidReq"}`),
 		},
 		{
-			description:          "resolved request doesn't exists",
-			inBidRequest:         &openrtb2.BidRequest{ID: "bidReqId"},
-			inResolvedBidRequest: nil,
-			outBidRequest:        &openrtb2.BidRequest{ID: "bidReqId"},
+			description:           "resolved request doesn't exists",
+			inBidRequest:          &openrtb2.BidRequest{ID: "bidReqId"},
+			inResolvedBidRequest:  json.RawMessage(``),
+			outResolvedBidRequest: json.RawMessage(`{"id": "bidReqId", "imp":null}`),
+		},
+		{
+			description:           "resolved request is null",
+			inBidRequest:          &openrtb2.BidRequest{ID: "bidReqId"},
+			inResolvedBidRequest:  nil,
+			outResolvedBidRequest: json.RawMessage(`{"id": "bidReqId", "imp":null}`),
 		},
 	}
 
@@ -3925,7 +3933,7 @@ func TestMakeExtBidResponse(t *testing.T) {
 			ResolvedBidRequest: testCase.inResolvedBidRequest,
 		}
 		actualResponse := e.makeExtBidResponse(nil, nil, auctionReq, true, nil)
-		assert.Equal(t, testCase.outBidRequest.ID, actualResponse.Debug.ResolvedRequest.ID, "Incorrect resolvedRequest.ID: %s", testCase.description)
+		assert.JSONEq(t, string(testCase.outResolvedBidRequest), string(actualResponse.Debug.ResolvedRequest), "Incorrect resolvedRequest: %s", testCase.description)
 	}
 }
 

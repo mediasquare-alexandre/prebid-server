@@ -208,7 +208,7 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 	//ExtractFPDForBidders removes FPD related structures from request.
 	//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
 	//original request should be copied before FPD execution
-	resolvedBidReq, err := exchange.DeepCopy(req.BidRequest)
+	resolvedBidReq, err := json.Marshal(req.BidRequest)
 	if err != nil {
 		errL = append(errL, err)
 		writeError(errL, w, &labels)
@@ -225,7 +225,7 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 
 	auctionRequest := exchange.AuctionRequest{
 		BidRequest:                 req.BidRequest,
-		ResolvedBidRequest:         resolvedBidReq.(*openrtb2.BidRequest),
+		ResolvedBidRequest:         resolvedBidReq,
 		Account:                    *account,
 		UserSyncs:                  usersyncs,
 		RequestType:                labels.RType,

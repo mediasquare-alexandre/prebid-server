@@ -3314,7 +3314,9 @@ func TestAuctionFirstPartyDataResolvedRequest(t *testing.T) {
 		t.Errorf("Endpoint should return a 200")
 	}
 	resultRequest := deps.ex.(*mockExchangeFPD).lastRequest
-	resolvedRequest := deps.ex.(*mockExchangeFPD).resolvedRequest
+	var resolvedRequest openrtb2.BidRequest
+	err := json.Unmarshal(deps.ex.(*mockExchangeFPD).resolvedRequest, &resolvedRequest)
+	assert.NoError(t, err, "resolved request should have a correct format")
 	assert.NotNil(t, resolvedRequest.Site.Content, "Incorrect resolved request: site.content should not be nil")
 	assert.Equal(t, "reqSiteId", resolvedRequest.Site.ID, "Incorrect resolved request: site.id")
 	assert.Equal(t, "episodeName", resolvedRequest.Site.Content.Title, "Incorrect resolved request: site.content.title")
@@ -4659,7 +4661,7 @@ func (m *mockExchange) HoldAuction(ctx context.Context, r exchange.AuctionReques
 
 type mockExchangeFPD struct {
 	lastRequest     *openrtb2.BidRequest
-	resolvedRequest *openrtb2.BidRequest
+	resolvedRequest json.RawMessage
 	firstPartyData  map[openrtb_ext.BidderName]*firstpartydata.ResolvedFirstPartyData
 }
 
