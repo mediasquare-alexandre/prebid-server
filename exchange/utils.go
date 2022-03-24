@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/mxmCherry/openrtb/v15/openrtb2"
-	"github.com/prebid/go-gdpr/vendorconsent"
 	"math/rand"
 
 	"github.com/buger/jsonparser"
+	"github.com/mxmCherry/openrtb/v15/openrtb2"
+	"github.com/prebid/go-gdpr/vendorconsent"
 	"github.com/prebid/prebid-server/adapters"
 	"github.com/prebid/prebid-server/config"
 	"github.com/prebid/prebid-server/firstpartydata"
