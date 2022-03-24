@@ -205,14 +205,18 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 
 	secGPC := r.Header.Get("Sec-GPC")
 
-	//ExtractFPDForBidders removes FPD related structures from request.
-	//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
-	//original request should be copied before FPD execution
-	resolvedBidReq, err := json.Marshal(req.BidRequest)
-	if err != nil {
-		errL = append(errL, err)
-		writeError(errL, w, &labels)
-		return
+	var resolvedBidReq json.RawMessage
+	requestExt, _ := req.GetRequestExt()
+	if req.Test == 1 || (requestExt != nil && requestExt.GetPrebid() != nil && requestExt.GetPrebid().Debug) {
+		//ExtractFPDForBidders removes FPD related structures from request.
+		//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
+		//original request should be copied before FPD execution
+		resolvedBidReq, err = json.Marshal(req.BidRequest)
+		if err != nil {
+			errL = append(errL, err)
+			writeError(errL, w, &labels)
+			return
+		}
 	}
 	resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(req)
 	if len(fpdErrors) > 0 {
