@@ -3937,6 +3937,45 @@ func TestMakeExtBidResponse(t *testing.T) {
 	}
 }
 
+func TestAuctionDebugEnabled(t *testing.T) {
+	categoriesFetcher, err := newCategoryFetcher("./test/category-mapping")
+	assert.NoError(t, err, "error should be nil")
+
+	e := new(exchange)
+	e.cache = &wellBehavedCache{}
+	e.me = &metricsConf.NilMetricsEngine{}
+	e.gDPR = gdpr.AlwaysAllow{}
+	e.currencyConverter = currency.NewRateConverter(&http.Client{}, "", time.Duration(0))
+	e.categoriesFetcher = categoriesFetcher
+
+	ctx := context.Background()
+
+	bidRequest := &openrtb2.BidRequest{
+		ID:   "some-request-id",
+		Test: 1,
+	}
+
+	auctionRequest := AuctionRequest{
+		BidRequest:  bidRequest,
+		Account:     config.Account{DebugAllow: false},
+		UserSyncs:   &emptyUsersync{},
+		StartTime:   time.Now(),
+		RequestType: metrics.ReqTypeORTB2Web,
+	}
+
+	debugLog := &DebugLog{DebugOverride: true, DebugEnabledOrOverridden: true}
+	resp, err := e.HoldAuction(ctx, auctionRequest, debugLog)
+
+	assert.NoError(t, err, "error should be nil")
+
+	expectedResolvedRequest := `{"id":"some-request-id","imp":null,"test":1}`
+	actualResolvedRequest, _, _, err := jsonparser.Get(resp.Ext, "debug", "resolvedrequest")
+	assert.NoError(t, err, "error should be nil")
+	assert.NotNil(t, actualResolvedRequest, "actualResolvedRequest should not be nil")
+	assert.JSONEq(t, expectedResolvedRequest, string(actualResolvedRequest), "Resolved request is incorrect")
+
+}
+
 type exchangeSpec struct {
 	GDPREnabled       bool                   `json:"gdpr_enabled"`
 	IncomingRequest   exchangeRequest        `json:"incomingRequest"`

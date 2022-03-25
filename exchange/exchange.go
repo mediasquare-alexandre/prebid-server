@@ -192,10 +192,8 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 	responseDebugAllow, accountDebugAllow, debugLog := getDebugInfo(r.BidRequest, requestExt, r.Account.DebugAllow, debugLog)
 
 	if r.RequestType == metrics.ReqTypeORTB2Web || r.RequestType == metrics.ReqTypeORTB2App {
-		fmt.Println("in auction endpoint")
 		//Extract First party data for auction endpoint only
 		if responseDebugAllow {
-			fmt.Println("resolved req debug allowed")
 			//ExtractFPDForBidders removes FPD related structures from request.
 			//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
 			//original request should be copied before FPD execution
@@ -204,8 +202,6 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 				return nil, err
 			}
 			r.ResolvedBidRequest = resolvedBidReq
-		} else {
-			fmt.Println("resolved req debug no allowed")
 		}
 
 		resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(&openrtb_ext.RequestWrapper{BidRequest: r.BidRequest})
