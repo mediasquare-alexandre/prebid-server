@@ -177,7 +177,7 @@ type BidderRequest struct {
 }
 
 func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *DebugLog) (*openrtb2.BidResponse, error) {
-	var err error
+	var errs []error
 	requestExt, err := extractBidRequestExt(r.BidRequest)
 	if err != nil {
 		return nil, err
@@ -191,6 +191,34 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 
 	responseDebugAllow, accountDebugAllow, debugLog := getDebugInfo(r.BidRequest, requestExt, r.Account.DebugAllow, debugLog)
 
+	if r.RequestType == metrics.ReqTypeORTB2Web || r.RequestType == metrics.ReqTypeORTB2App {
+		fmt.Println("in auction endpoint")
+		//Extract First party data for auction endpoint only
+		if responseDebugAllow {
+			fmt.Println("resolved req debug allowed")
+			//ExtractFPDForBidders removes FPD related structures from request.
+			//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
+			//original request should be copied before FPD execution
+			resolvedBidReq, err := json.Marshal(r.BidRequest)
+			if err != nil {
+				return nil, err
+			}
+			r.ResolvedBidRequest = resolvedBidReq
+		} else {
+			fmt.Println("resolved req debug no allowed")
+		}
+
+		resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(&openrtb_ext.RequestWrapper{BidRequest: r.BidRequest})
+		if len(fpdErrors) > 0 {
+			if errortypes.ContainsFatalError(fpdErrors) {
+				//it can be only one fatal error returned from ExtractFPDForBidders
+				return nil, errortypes.FatalOnly(fpdErrors)[0]
+			}
+			errs = append(errs, fpdErrors...)
+		}
+		r.FirstPartyData = resolvedFPD
+	}
+
 	bidAdjustmentFactors := getExtBidAdjustmentFactors(requestExt)
 
 	recordImpMetrics(r.BidRequest, e.me)
@@ -199,7 +227,10 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 	gdprDefaultValue := e.parseGDPRDefaultValue(r.BidRequest)
 
 	// Slice of BidRequests, each a copy of the original cleaned to only contain bidder data for the named bidder
-	bidderRequests, privacyLabels, errs := cleanOpenRTBRequests(ctx, r, requestExt, e.bidderToSyncerKey, e.gDPR, e.me, gdprDefaultValue, e.privacyConfig, &r.Account)
+	bidderRequests, privacyLabels, ortbErrs := cleanOpenRTBRequests(ctx, r, requestExt, e.bidderToSyncerKey, e.gDPR, e.me, gdprDefaultValue, e.privacyConfig, &r.Account)
+	if len(ortbErrs) > 0 {
+		errs = append(errs, ortbErrs...)
+	}
 
 	e.me.RecordRequestPrivacy(privacyLabels)
 

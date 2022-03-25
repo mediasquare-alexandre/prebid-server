@@ -30,7 +30,6 @@ import (
 	"github.com/prebid/prebid-server/currency"
 	"github.com/prebid/prebid-server/errortypes"
 	"github.com/prebid/prebid-server/exchange"
-	"github.com/prebid/prebid-server/firstpartydata"
 	"github.com/prebid/prebid-server/metrics"
 	"github.com/prebid/prebid-server/openrtb_ext"
 	"github.com/prebid/prebid-server/prebid_cache_client"
@@ -205,31 +204,10 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 
 	secGPC := r.Header.Get("Sec-GPC")
 
-	var resolvedBidReq json.RawMessage
-	requestExt, _ := req.GetRequestExt()
-	if req.Test == 1 || (requestExt != nil && requestExt.GetPrebid() != nil && requestExt.GetPrebid().Debug) {
-		//ExtractFPDForBidders removes FPD related structures from request.
-		//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
-		//original request should be copied before FPD execution
-		resolvedBidReq, err = json.Marshal(req.BidRequest)
-		if err != nil {
-			errL = append(errL, err)
-			writeError(errL, w, &labels)
-			return
-		}
-	}
-	resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(req)
-	if len(fpdErrors) > 0 {
-		if errortypes.ContainsFatalError(fpdErrors) && writeError(fpdErrors, w, &labels) {
-			return
-		}
-		errL = append(errL, fpdErrors...)
-	}
 	warnings := errortypes.WarningOnly(errL)
 
 	auctionRequest := exchange.AuctionRequest{
 		BidRequest:                 req.BidRequest,
-		ResolvedBidRequest:         resolvedBidReq,
 		Account:                    *account,
 		UserSyncs:                  usersyncs,
 		RequestType:                labels.RType,
@@ -238,7 +216,6 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 		Warnings:                   warnings,
 		GlobalPrivacyControlHeader: secGPC,
 		ImpExtInfoMap:              impExtInfoMap,
-		FirstPartyData:             resolvedFPD,
 		StoredAuctionResponses:     storedAuctionResponses,
 	}
 
