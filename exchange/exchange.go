@@ -206,11 +206,18 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 
 		resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(&openrtb_ext.RequestWrapper{BidRequest: r.BidRequest})
 		if len(fpdErrors) > 0 {
-			if errortypes.ContainsFatalError(fpdErrors) {
-				//it can be only one fatal error returned from ExtractFPDForBidders
-				return nil, errortypes.FatalOnly(fpdErrors)[0]
+			var errMessages []string
+			for _, fpdError := range fpdErrors {
+				//error and BadInput errors are both Fatal errors
+				//we need to distinguish them and return http 500 for error and thhp 400 for BadInput
+				if errortypes.ReadCode(fpdError) == errortypes.BadInputErrorCode {
+					errMessages = append(errMessages, fpdError.Error())
+				}
+				return nil, fpdError
 			}
-			errs = append(errs, fpdErrors...)
+			return nil, &errortypes.BadInput{
+				Message: strings.Join(errMessages, ","),
+			}
 		}
 		r.FirstPartyData = resolvedFPD
 	}
