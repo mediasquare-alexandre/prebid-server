@@ -108,9 +108,9 @@ func runTargetingAuction(t *testing.T, mockBids map[openrtb_ext.BidderName][]*op
 	}
 
 	auctionRequest := AuctionRequest{
-		BidRequest: req,
-		Account:    config.Account{},
-		UserSyncs:  &emptyUsersync{},
+		BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: req},
+		Account:           config.Account{},
+		UserSyncs:         &emptyUsersync{},
 	}
 
 	debugLog := DebugLog{}

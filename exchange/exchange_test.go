@@ -330,10 +330,10 @@ func TestDebugBehaviour(t *testing.T) {
 		}
 
 		auctionRequest := AuctionRequest{
-			BidRequest: bidRequest,
-			Account:    config.Account{DebugAllow: test.debugData.accountLevelDebugAllowed},
-			UserSyncs:  &emptyUsersync{},
-			StartTime:  time.Now(),
+			BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: bidRequest},
+			Account:           config.Account{DebugAllow: test.debugData.accountLevelDebugAllowed},
+			UserSyncs:         &emptyUsersync{},
+			StartTime:         time.Now(),
 		}
 		if test.generateWarnings {
 			var errL []error
@@ -488,10 +488,10 @@ func TestTwoBiddersDebugDisabledAndEnabled(t *testing.T) {
 		bidRequest.Ext = json.RawMessage(`{"prebid":{"debug":true}}`)
 
 		auctionRequest := AuctionRequest{
-			BidRequest: bidRequest,
-			Account:    config.Account{DebugAllow: true},
-			UserSyncs:  &emptyUsersync{},
-			StartTime:  time.Now(),
+			BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: bidRequest},
+			Account:           config.Account{DebugAllow: true},
+			UserSyncs:         &emptyUsersync{},
+			StartTime:         time.Now(),
 		}
 
 		e.adapterMap = map[openrtb_ext.BidderName]adaptedBidder{
@@ -660,9 +660,9 @@ func TestOverrideWithCustomCurrency(t *testing.T) {
 		mockBidRequest.Cur = []string{test.in.bidRequestCurrency}
 
 		auctionRequest := AuctionRequest{
-			BidRequest: mockBidRequest,
-			Account:    config.Account{},
-			UserSyncs:  &emptyUsersync{},
+			BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: mockBidRequest},
+			Account:           config.Account{},
+			UserSyncs:         &emptyUsersync{},
 		}
 
 		// Run test
@@ -742,9 +742,9 @@ func TestAdapterCurrency(t *testing.T) {
 
 	// Run Auction
 	auctionRequest := AuctionRequest{
-		BidRequest: request,
-		Account:    config.Account{},
-		UserSyncs:  &emptyUsersync{},
+		BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: request},
+		Account:           config.Account{},
+		UserSyncs:         &emptyUsersync{},
 	}
 	response, err := e.HoldAuction(context.Background(), auctionRequest, &DebugLog{})
 	assert.NoError(t, err)
@@ -1127,9 +1127,9 @@ func TestReturnCreativeEndToEnd(t *testing.T) {
 			mockBidRequest.Ext = test.inExt
 
 			auctionRequest := AuctionRequest{
-				BidRequest: mockBidRequest,
-				Account:    config.Account{},
-				UserSyncs:  &emptyUsersync{},
+				BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: mockBidRequest},
+				Account:           config.Account{},
+				UserSyncs:         &emptyUsersync{},
 			}
 
 			// Run test
@@ -1789,9 +1789,9 @@ func TestRaceIntegration(t *testing.T) {
 	currencyConverter := currency.NewRateConverter(&http.Client{}, "", time.Duration(0))
 
 	auctionRequest := AuctionRequest{
-		BidRequest: getTestBuildRequest(t),
-		Account:    config.Account{},
-		UserSyncs:  &emptyUsersync{},
+		BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: getTestBuildRequest(t)},
+		Account:           config.Account{},
+		UserSyncs:         &emptyUsersync{},
 	}
 
 	debugLog := DebugLog{}
@@ -1994,9 +1994,9 @@ func TestPanicRecoveryHighLevel(t *testing.T) {
 	}
 
 	auctionRequest := AuctionRequest{
-		BidRequest: request,
-		Account:    config.Account{},
-		UserSyncs:  &emptyUsersync{},
+		BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: request},
+		Account:           config.Account{},
+		UserSyncs:         &emptyUsersync{},
 	}
 	debugLog := DebugLog{}
 	_, err = e.HoldAuction(context.Background(), auctionRequest, &debugLog)
@@ -2099,7 +2099,7 @@ func runSpec(t *testing.T, filename string, spec *exchangeSpec) {
 	}
 
 	auctionRequest := AuctionRequest{
-		BidRequest: &spec.IncomingRequest.OrtbRequest,
+		BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: &spec.IncomingRequest.OrtbRequest},
 		Account: config.Account{
 			ID:            "testaccount",
 			EventsEnabled: spec.EventsEnabled,
@@ -3682,7 +3682,7 @@ func TestStoredAuctionResponses(t *testing.T) {
 	for _, test := range testCases {
 
 		auctionRequest := AuctionRequest{
-			BidRequest:             mockBidRequest,
+			BidRequestWrapper:      &openrtb_ext.RequestWrapper{BidRequest: mockBidRequest},
 			Account:                config.Account{},
 			UserSyncs:              &emptyUsersync{},
 			StoredAuctionResponses: test.storedAuctionResp,
@@ -3883,7 +3883,7 @@ func TestMakeExtBidResponse(t *testing.T) {
 	for _, testCase := range testCases {
 		e := new(exchange)
 		auctionReq := AuctionRequest{
-			BidRequest:         testCase.inBidRequest,
+			BidRequestWrapper:  &openrtb_ext.RequestWrapper{BidRequest: testCase.inBidRequest},
 			ResolvedBidRequest: testCase.inResolvedBidRequest,
 		}
 		actualResponse := e.makeExtBidResponse(nil, nil, auctionReq, true, nil)
@@ -3910,11 +3910,11 @@ func TestAuctionDebugEnabled(t *testing.T) {
 	}
 
 	auctionRequest := AuctionRequest{
-		BidRequest:  bidRequest,
-		Account:     config.Account{DebugAllow: false},
-		UserSyncs:   &emptyUsersync{},
-		StartTime:   time.Now(),
-		RequestType: metrics.ReqTypeORTB2Web,
+		BidRequestWrapper: &openrtb_ext.RequestWrapper{BidRequest: bidRequest},
+		Account:           config.Account{DebugAllow: false},
+		UserSyncs:         &emptyUsersync{},
+		StartTime:         time.Now(),
+		RequestType:       metrics.ReqTypeORTB2Web,
 	}
 
 	debugLog := &DebugLog{DebugOverride: true, DebugEnabledOrOverridden: true}

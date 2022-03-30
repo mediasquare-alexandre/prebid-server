@@ -207,7 +207,7 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 	warnings := errortypes.WarningOnly(errL)
 
 	auctionRequest := exchange.AuctionRequest{
-		BidRequest:                 req.BidRequest,
+		BidRequestWrapper:          req,
 		Account:                    *account,
 		UserSyncs:                  usersyncs,
 		RequestType:                labels.RType,
