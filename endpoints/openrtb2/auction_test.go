@@ -17,8 +17,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/prebid/prebid-server/firstpartydata"
-
 	analyticsConf "github.com/prebid/prebid-server/analytics/config"
 	"github.com/prebid/prebid-server/config"
 	"github.com/prebid/prebid-server/currency"
@@ -4549,19 +4547,6 @@ func (m *mockExchange) HoldAuction(ctx context.Context, r exchange.AuctionReques
 			}},
 		}},
 	}, nil
-}
-
-type mockExchangeFPD struct {
-	lastRequest     *openrtb2.BidRequest
-	resolvedRequest json.RawMessage
-	firstPartyData  map[openrtb_ext.BidderName]*firstpartydata.ResolvedFirstPartyData
-}
-
-func (m *mockExchangeFPD) HoldAuction(ctx context.Context, r exchange.AuctionRequest, debugLog *exchange.DebugLog) (*openrtb2.BidResponse, error) {
-	m.lastRequest = r.BidRequest
-	m.resolvedRequest = r.ResolvedBidRequest
-	m.firstPartyData = r.FirstPartyData
-	return &openrtb2.BidResponse{}, nil
 }
 
 func getBidderInfos(cfg map[string]config.Adapter, biddersNames []openrtb_ext.BidderName) config.BidderInfos {

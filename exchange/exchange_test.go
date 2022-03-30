@@ -17,7 +17,6 @@ import (
 
 	"github.com/buger/jsonparser"
 	"github.com/mxmCherry/openrtb/v15/openrtb2"
-	"github.com/prebid/prebid-server/firstpartydata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	jsonpatch "gopkg.in/evanphx/json-patch.v4"
@@ -2111,9 +2110,18 @@ func runSpec(t *testing.T, filename string, spec *exchangeSpec) {
 	if spec.StartTime > 0 {
 		auctionRequest.StartTime = time.Unix(0, spec.StartTime*1e+6)
 	}
+	if spec.RequestType != nil {
+		auctionRequest.RequestType = *spec.RequestType
+	}
 	ctx := context.Background()
 
 	bid, err := ex.HoldAuction(ctx, auctionRequest, debugLog)
+	if len(spec.Response.Error) > 0 && spec.Response.Bids == nil {
+		if err.Error() != spec.Response.Error {
+			t.Errorf("%s: Exchange returned different errors. Expected %s, got %s", filename, spec.Response.Error, err.Error())
+		}
+		return
+	}
 	responseTimes := extractResponseTimes(t, filename, bid)
 	for _, bidderName := range biddersInAuction {
 		if _, ok := responseTimes[bidderName]; !ok {
@@ -3615,60 +3623,6 @@ func TestMakeBidExtJSON(t *testing.T) {
 	}
 }
 
-func TestFPD(t *testing.T) {
-
-	bidRequest := &openrtb2.BidRequest{
-		ID: "some-request-id",
-		Imp: []openrtb2.Imp{{
-			ID:    "some-impression-id",
-			Video: &openrtb2.Video{W: 100, H: 50},
-			Ext:   json.RawMessage(`{"appnexus": {"placementId": 1}}`),
-		}},
-		Site: &openrtb2.Site{ID: "Req site id", Page: "prebid.org", Ext: json.RawMessage(`{"amp":0}`)},
-		AT:   1,
-		TMax: 500,
-	}
-
-	fpd := make(map[openrtb_ext.BidderName]*firstpartydata.ResolvedFirstPartyData)
-
-	apnFpd := firstpartydata.ResolvedFirstPartyData{
-		Site: &openrtb2.Site{ID: "fpdSite"},
-		App:  &openrtb2.App{ID: "fpdApp"},
-		User: &openrtb2.User{ID: "fpdUser"},
-	}
-	fpd[openrtb_ext.BidderName("appnexus")] = &apnFpd
-
-	e := new(exchange)
-	e.adapterMap = map[openrtb_ext.BidderName]adaptedBidder{
-		openrtb_ext.BidderAppnexus: &capturingRequestBidder{},
-	}
-	e.me = &metricsConf.NilMetricsEngine{}
-	e.currencyConverter = currency.NewRateConverter(&http.Client{}, "", time.Duration(0))
-
-	ctx := context.Background()
-
-	auctionRequest := AuctionRequest{
-		BidRequest:     bidRequest,
-		UserSyncs:      &emptyUsersync{},
-		FirstPartyData: fpd,
-	}
-
-	debugLog := &DebugLog{DebugOverride: true, DebugEnabledOrOverridden: true}
-
-	outBidResponse, err := e.HoldAuction(ctx, auctionRequest, debugLog)
-
-	assert.NotNilf(t, outBidResponse, "outBidResponse should not be nil")
-	assert.Nil(t, err, "Error should be nil")
-
-	request := e.adapterMap[openrtb_ext.BidderAppnexus].(*capturingRequestBidder).req
-
-	assert.NotNil(t, request, "Bidder request should not be nil")
-	assert.Equal(t, apnFpd.Site, request.Site, "Site is incorrect")
-	assert.Equal(t, apnFpd.App, request.App, "App is incorrect")
-	assert.Equal(t, apnFpd.User, request.User, "User is incorrect")
-
-}
-
 func TestStoredAuctionResponses(t *testing.T) {
 	categoriesFetcher, error := newCategoryFetcher("./test/category-mapping")
 	if error != nil {
@@ -3988,6 +3942,7 @@ type exchangeSpec struct {
 	EventsEnabled     bool                   `json:"events_enabled,omitempty"`
 	StartTime         int64                  `json:"start_time_ms,omitempty"`
 	BidIDGenerator    *mockBidIDGenerator    `json:"bidIDGenerator,omitempty"`
+	RequestType       *metrics.RequestType   `json:"requestType,omitempty"`
 }
 
 type exchangeRequest struct {
