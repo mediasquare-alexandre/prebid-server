@@ -3853,44 +3853,6 @@ func TestBuildStoredAuctionResponses(t *testing.T) {
 	}
 }
 
-func TestMakeExtBidResponse(t *testing.T) {
-	testCases := []struct {
-		description           string
-		inBidRequest          *openrtb2.BidRequest
-		inResolvedBidRequest  json.RawMessage
-		outResolvedBidRequest json.RawMessage
-	}{
-		{
-			description:           "resolved request exists",
-			inBidRequest:          &openrtb2.BidRequest{ID: "bidReqId"},
-			inResolvedBidRequest:  json.RawMessage(`{"id": "resolvedBidReq"}`),
-			outResolvedBidRequest: json.RawMessage(`{"id": "resolvedBidReq"}`),
-		},
-		{
-			description:           "resolved request doesn't exists",
-			inBidRequest:          &openrtb2.BidRequest{ID: "bidReqId"},
-			inResolvedBidRequest:  json.RawMessage(``),
-			outResolvedBidRequest: json.RawMessage(`{"id": "bidReqId", "imp":null}`),
-		},
-		{
-			description:           "resolved request is null",
-			inBidRequest:          &openrtb2.BidRequest{ID: "bidReqId"},
-			inResolvedBidRequest:  nil,
-			outResolvedBidRequest: json.RawMessage(`{"id": "bidReqId", "imp":null}`),
-		},
-	}
-
-	for _, testCase := range testCases {
-		e := new(exchange)
-		auctionReq := AuctionRequest{
-			BidRequestWrapper:  &openrtb_ext.RequestWrapper{BidRequest: testCase.inBidRequest},
-			ResolvedBidRequest: testCase.inResolvedBidRequest,
-		}
-		actualResponse := e.makeExtBidResponse(nil, nil, auctionReq, true, nil)
-		assert.JSONEq(t, string(testCase.outResolvedBidRequest), string(actualResponse.Debug.ResolvedRequest), "Incorrect resolvedRequest: %s", testCase.description)
-	}
-}
-
 func TestAuctionDebugEnabled(t *testing.T) {
 	categoriesFetcher, err := newCategoryFetcher("./test/category-mapping")
 	assert.NoError(t, err, "error should be nil")

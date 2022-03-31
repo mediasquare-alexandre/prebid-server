@@ -189,21 +189,22 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 		_, targData.cacheHost, targData.cachePath = e.cache.GetExtCacheData()
 	}
 
+	// rebuild/resync the request in the request wrapper.
+	if err := r.BidRequestWrapper.RebuildRequest(); err != nil {
+		return nil, err
+	}
 	responseDebugAllow, accountDebugAllow, debugLog := getDebugInfo(r.BidRequestWrapper.BidRequest, requestExt, r.Account.DebugAllow, debugLog)
+	if responseDebugAllow {
+		//save incoming request with stored requests (if applicable) to return in debug logs
+		resolvedBidReq, err := json.Marshal(r.BidRequestWrapper.BidRequest)
+		if err != nil {
+			return nil, err
+		}
+		r.ResolvedBidRequest = resolvedBidReq
+	}
 
 	if r.RequestType == metrics.ReqTypeORTB2Web || r.RequestType == metrics.ReqTypeORTB2App {
 		//Extract First party data for auction endpoint only
-		if responseDebugAllow {
-			//ExtractFPDForBidders removes FPD related structures from request.
-			//In order to preserve original request and return it properly in response.ext.debug.resolvedrequest
-			//original request should be copied before FPD execution
-			resolvedBidReq, err := json.Marshal(r.BidRequestWrapper.BidRequest)
-			if err != nil {
-				return nil, err
-			}
-			r.ResolvedBidRequest = resolvedBidReq
-		}
-
 		resolvedFPD, fpdErrors := firstpartydata.ExtractFPDForBidders(r.BidRequestWrapper)
 		if len(fpdErrors) > 0 {
 			var errMessages []string
@@ -908,19 +909,9 @@ func (e *exchange) makeExtBidResponse(adapterBids map[openrtb_ext.BidderName]*pb
 		RequestTimeoutMillis: r.BidRequestWrapper.BidRequest.TMax,
 	}
 	if debugInfo {
-		var resolvedReq json.RawMessage
-		if len(r.ResolvedBidRequest) > 0 {
-			resolvedReq = r.ResolvedBidRequest
-		} else {
-			var err error
-			resolvedReq, err = json.Marshal(r.BidRequestWrapper.BidRequest)
-			if err != nil {
-				errList = append(errList, err)
-			}
-		}
 		bidResponseExt.Debug = &openrtb_ext.ExtResponseDebug{
 			HttpCalls:       make(map[openrtb_ext.BidderName][]*openrtb_ext.ExtHttpCall),
-			ResolvedRequest: resolvedReq,
+			ResolvedRequest: r.ResolvedBidRequest,
 		}
 	}
 	if !r.StartTime.IsZero() {

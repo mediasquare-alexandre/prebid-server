@@ -194,14 +194,6 @@ func (deps *endpointDeps) Auction(w http.ResponseWriter, r *http.Request, _ http
 		writeError(errL, w, &labels)
 		return
 	}
-
-	// rebuild/resync the request in the request wrapper.
-	if err := req.RebuildRequest(); err != nil {
-		errL = append(errL, err)
-		writeError(errL, w, &labels)
-		return
-	}
-
 	secGPC := r.Header.Get("Sec-GPC")
 
 	warnings := errortypes.WarningOnly(errL)
