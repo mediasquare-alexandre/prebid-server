@@ -216,6 +216,16 @@ func (e *exchange) HoldAuction(ctx context.Context, r AuctionRequest, debugLog *
 			}
 		}
 		r.FirstPartyData = resolvedFPD
+		if len(resolvedFPD) > 0 {
+			// rebuild/resync the request in the request wrapper.
+			if err := r.BidRequestWrapper.RebuildRequest(); err != nil {
+				return nil, err
+			}
+			requestExt, err = extractBidRequestExt(r.BidRequestWrapper.BidRequest)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	bidAdjustmentFactors := getExtBidAdjustmentFactors(requestExt)

@@ -107,40 +107,8 @@
           "ext": {
             "prebid": {
               "data": {
-                "eidpermissions": null,
-                "bidders": [
-                  "appnexus",
-                  "rubicon"
-                ]
-              },
-              "bidderconfig": [
-                {
-                  "bidders": [
-                    "appnexus"
-                  ],
-                  "config": {
-                    "ortb2": {
-                      "site": {
-                        "domain": "fpd_appnexus_site_domain",
-                        "page": "fpd_appnexus_site_page"
-                      }
-                    }
-                  }
-                },
-                {
-                  "bidders": [
-                    "rubicon"
-                  ],
-                  "config": {
-                    "ortb2": {
-                      "site": {
-                        "domain": "fpd_rubicon_site_domain",
-                        "page": "fpd_rubicon_site_page"
-                      }
-                    }
-                  }
-                }
-              ]
+                "eidpermissions": null
+              }
             }
           }
         },
@@ -182,40 +150,8 @@
           "ext": {
             "prebid": {
               "data": {
-                "eidpermissions": null,
-                "bidders": [
-                  "appnexus",
-                  "rubicon"
-                ]
-              },
-              "bidderconfig": [
-                {
-                  "bidders": [
-                    "appnexus"
-                  ],
-                  "config": {
-                    "ortb2": {
-                      "site": {
-                        "domain": "fpd_appnexus_site_domain",
-                        "page": "fpd_appnexus_site_page"
-                      }
-                    }
-                  }
-                },
-                {
-                  "bidders": [
-                    "rubicon"
-                  ],
-                  "config": {
-                    "ortb2": {
-                      "site": {
-                        "domain": "fpd_rubicon_site_domain",
-                        "page": "fpd_rubicon_site_page"
-                      }
-                    }
-                  }
-                }
-              ]
+                "eidpermissions": null
+              }
             }
           }
         },
