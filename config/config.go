@@ -658,8 +658,8 @@ func SetupViper(v *viper.Viper, filename string) {
 	v.SetDefault("external_url", "http://localhost:8000")
 	v.SetDefault("host", "")
 	v.SetDefault("port", 8000)
-	v.SetDefault("unix_socket_enable", true)               // boolean which decide if the socket-server will be started.
-	v.SetDefault("unix_socket_name", "prebid-server.sock") // path of the socket's file which must be listened.
+	v.SetDefault("unix_socket_enable", true)                 // boolean which decide if the socket-server will be started.
+	v.SetDefault("unix_socket_name", "~/prebid-server.sock") // path of the socket's file which must be listened.
 	v.SetDefault("admin_port", 6060)
 	v.SetDefault("enable_gzip", false)
 	v.SetDefault("garbage_collector_threshold", 0)
